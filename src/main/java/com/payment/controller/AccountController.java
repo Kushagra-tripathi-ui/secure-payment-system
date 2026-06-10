@@ -28,7 +28,7 @@ import java.util.List;
  * from the JWT token — no need to pass it manually in the request body.
  */
 @RestController
-@RequestMapping("/accounts")
+@RequestMapping("/api/accounts")
 @RequiredArgsConstructor
 @Slf4j
 public class AccountController {

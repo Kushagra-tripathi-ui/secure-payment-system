@@ -41,8 +41,8 @@ public class SecurityConfig {
      *       so /auth/register maps to real path /api/auth/register
      */
     private static final String[] PUBLIC_ENDPOINTS = {
-        "/auth/register",
-        "/auth/login",
+        "/api/auth/register",
+        "/api/auth/login",
         "/v3/api-docs/**",    // Swagger API docs
         "/swagger-ui/**",     // Swagger UI
         "/swagger-ui.html"

@@ -2,89 +2,56 @@ package com.payment.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 
-/**
- * JWT TOKEN PROVIDER - Handles JWT token generation and validation
- * 
- * JWT (JSON Web Token) is a stateless authentication mechanism
- * 
- * Structure: header.payload.signature
- * - header: Token type and hashing algorithm
- * - payload: Claims (user info, expiration, etc)
- * - signature: Cryptographic signature to prevent tampering
- * 
- * Advantages:
- * - Stateless: No session storage needed
- * - Scalable: Works across multiple servers
- * - Mobile-friendly: Easy to use with mobile apps
- */
-@Component
+@Service
 @Slf4j
 public class JwtTokenProvider {
-    
-    @Value("${app.jwt.secret:your-secret-key-must-be-at-least-32-characters-long-for-hs256}")
+
+    @Value("${app.jwt.secret}")
     private String jwtSecret;
-    
-    @Value("${app.jwt.expiration:86400000}") // 24 hours in ms
-    private int jwtExpirationMs;
-    
-    /**
-     * Generate JWT token
-     */
-    public String generateToken(Long userId, String email) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
-        
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
-        
-        String token = Jwts.builder()
-            .setSubject(String.valueOf(userId))
-            .claim("email", email)
-            .setIssuedAt(now)
-            .setExpiration(expiryDate)
-            .signWith(key, SignatureAlgorithm.HS512)
-            .compact();
-        
-        log.debug("Generated token for user: {}", userId);
-        return token;
+
+    @Value("${app.jwt.expiration}")
+    private long jwtExpiration;
+
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
-    
-    /**
-     * Get user ID from token
-     */
+
+    public String generateToken(Long userId,String email) {
+        return Jwts.builder()
+            .subject(String.valueOf(userId))
+            .claim("email",email)
+            .issuedAt(new Date())
+            .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+            .signWith(getSigningKey())
+            .compact();
+    }
+
     public Long getUserIdFromToken(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
-        
-        Claims claims = Jwts.parserBuilder()
-            .setSigningKey(key)
+        Claims claims = Jwts.parser()
+            .verifyWith(getSigningKey())
             .build()
-            .parseClaimsJws(token)
-            .getBody();
-        
+            .parseSignedClaims(token)
+            .getPayload();
         return Long.parseLong(claims.getSubject());
     }
-    
-    /**
-     * Validate token
-     */
+
     public boolean validateToken(String token) {
         try {
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
-            Jwts.parserBuilder()
-                .setSigningKey(key)
+            Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token);
+                .parseSignedClaims(token);
             return true;
         } catch (Exception e) {
-            log.error("Token validation failed: {}", e.getMessage());
+            log.error("Invalid JWT token: {}", e.getMessage());
             return false;
         }
     }
