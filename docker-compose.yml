@@ -1,0 +1,79 @@
+version: '3.8'
+
+# CONCEPT: Docker Compose
+#
+# Instead of running MySQL and the app manually (two terminals, two commands,
+# remembering ports and env vars), docker-compose.yml describes the ENTIRE
+# environment in one file.
+#
+# Single command to start everything:   docker-compose up --build
+# Single command to stop everything:    docker-compose down
+#
+# Services defined here:
+#   1. db       — MySQL 8 database
+#   2. app      — Our Spring Boot payment system
+
+services:
+
+  # ── MySQL Database ──────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: payment-db
+
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: payment_system       # Creates this DB automatically on first run
+      MYSQL_USER: payment_user
+      MYSQL_PASSWORD: payment_pass
+
+    ports:
+      - "3306:3306"    # host_port:container_port
+                       # Exposes MySQL so you can connect with DBeaver/MySQL Workbench
+
+    volumes:
+      - mysql_data:/var/lib/mysql    # Persist data across container restarts
+                                     # Without this, all data is lost on 'docker-compose down'
+
+    healthcheck:
+      # Wait until MySQL is actually ready to accept connections (not just started)
+      # The app will only start once this check passes (see depends_on below)
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Spring Boot Application ─────────────────────────────────────────────────
+  app:
+    build:
+      context: .          # Build from Dockerfile in current directory
+      dockerfile: Dockerfile
+
+    container_name: payment-app
+
+    ports:
+      - "8080:8080"    # Expose Spring Boot on localhost:8080
+
+    environment:
+      # Override application.yml datasource to point to the 'db' service above.
+      # Docker Compose creates a shared network — services reach each other by service name.
+      # So 'db' in the JDBC URL resolves to the MySQL container's IP automatically.
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/payment_system?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: payment_user
+      SPRING_DATASOURCE_PASSWORD: payment_pass
+
+      # JWT secret — in production, use Docker secrets or a vault, NOT hardcoded
+      APP_JWT_SECRET: secure-payment-jwt-secret-key-change-in-production-min-32-chars
+
+      # JVM active profile
+      SPRING_PROFILES_ACTIVE: docker
+
+    depends_on:
+      db:
+        condition: service_healthy    # Don't start app until MySQL healthcheck passes
+                                      # Prevents "Connection refused" errors on startup
+
+    restart: on-failure    # Restart app container if it crashes
+
+volumes:
+  mysql_data:    # Named volume — persisted by Docker, survives container restarts

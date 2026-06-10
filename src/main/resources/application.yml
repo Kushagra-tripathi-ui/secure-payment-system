@@ -40,8 +40,6 @@ spring:
 # Server Configuration
 server:
   port: 8080
-  servlet:
-    context-path: /api
 
 # Logging Configuration
 logging:
@@ -54,12 +52,10 @@ logging:
     console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 # JWT Configuration
-jwt:
-  secret: your-secret-key-change-this-in-production-min-32-chars
-  expiration: 86400000  # 24 hours in milliseconds
-
-# Application Configuration
 app:
+  jwt:
+    secret: your-secret-key-change-this-in-production-min-32-chars
+    expiration: 86400000  # 24 hours in milliseconds
   name: Secure Payment System
   version: 1.0.0
   max-transaction-amount: 100000  # max transaction limit
