@@ -1,0 +1,55 @@
+# RENDER DEPLOYMENT BLUEPRINT
+#
+# CONCEPT: Infrastructure as Code
+#
+# Instead of clicking through Render's dashboard manually (create DB, create
+# web service, wire env vars by hand), this file describes the entire stack.
+# Render reads this automatically when you connect the repo via "New +" →
+# "Blueprint", and provisions everything in one go.
+#
+# This defines:
+#   1. A free PostgreSQL database
+#   2. A web service (our Spring Boot app) built from the Dockerfile
+#   3. Environment variables wiring the two together automatically
+
+databases:
+  - name: secure-payment-db
+    plan: free
+    databaseName: payment_system
+    user: payment_user
+
+services:
+  - type: web
+    name: secure-payment-system
+    plan: free
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/auth/login
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+
+      # Render automatically injects these from the database above when
+      # you reference it with fromDatabase — no manual copy-pasting of
+      # connection strings.
+      - key: DB_HOST
+        fromDatabase:
+          name: secure-payment-db
+          property: host
+      - key: DB_NAME
+        fromDatabase:
+          name: secure-payment-db
+          property: database
+      - key: DATABASE_USERNAME
+        fromDatabase:
+          name: secure-payment-db
+          property: user
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: secure-payment-db
+          property: password
+
+      # JWT secret - Render generates a secure random value for this
+      # the first time it deploys, and reuses it on every redeploy.
+      - key: JWT_SECRET
+        generateValue: true

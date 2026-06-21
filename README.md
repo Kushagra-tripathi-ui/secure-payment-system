@@ -30,6 +30,29 @@ Client → JWT Auth Filter → Controller → Service → Repository → MySQL
 
 ---
 
+## 🌐 Live Deployment
+
+This project is deployed across two free-tier hosts:
+
+| Layer | Host | Why |
+|---|---|---|
+| Backend (Spring Boot + Docker) | [Render](https://render.com) | Free tier runs Docker web services and provides a free PostgreSQL database |
+| Frontend (static console) | [Vercel](https://vercel.com) | Zero-config static hosting, instant public URL |
+
+**Backend deploy (Render):**
+1. Push this repo to GitHub (already done if you're reading this on GitHub)
+2. On Render: **New +** → **Blueprint** → connect this repo → Render reads `render.yaml` and provisions the web service + free Postgres DB automatically
+3. Wait for the first deploy (~3-5 min) → copy the generated URL, e.g. `https://secure-payment-system.onrender.com`
+
+> Note: locally the app uses MySQL (`application.yml` default profile). In production it switches to PostgreSQL automatically via the `prod` Spring profile — same JPA code, different driver, no code changes needed.
+
+**Frontend deploy (Vercel):**
+1. Push the `frontend/` folder (or its own repo) to GitHub
+2. On Vercel: **Add New** → **Project** → import the repo → deploy (it's static, no build settings needed)
+3. Open the live URL → paste your Render backend URL into the **Set API** field in the top bar
+
+
+
 ## 🚀 Running the Project
 
 ### Option 1 — Docker (Recommended, zero setup)
