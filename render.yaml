@@ -24,7 +24,7 @@ services:
     plan: free
     runtime: docker
     dockerfilePath: ./Dockerfile
-    healthCheckPath: /api/auth/login
+    healthCheckPath: /api/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
